@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Curiosity Engine</title>
+  <style>
+    :root {
+      --bg: #0f0f12;
+      --surface: #1a1a20;
+      --border: #2a2a32;
+      --text: #e8e8ed;
+      --muted: #8888a0;
+      --accent: #7c6cf9;
+      --accent-hover: #9185ff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0 0 1.5rem;
+      letter-spacing: -0.02em;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    /* Webcam */
+    .webcam-wrap {
+      position: relative;
+      aspect-ratio: 16 / 10;
+      max-height: 280px;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    #video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    #canvas {
+      display: none;
+    }
+
+    .webcam-placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .webcam-wrap.active .webcam-placeholder {
+      display: none;
+    }
+
+    /* Question display */
+    .question-box {
+      min-height: 120px;
+      padding: 1rem;
+      border-radius: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .question-box.empty {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .question-box.loading {
+      color: var(--muted);
+    }
+
+    /* API key */
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.9rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+    }
+
+    input::placeholder {
+      color: var(--muted);
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 0.6rem 1.2rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--border);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .interval-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .interval-wrap label {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .interval-wrap input {
+      width: 4rem;
+      padding: 0.4rem 0.5rem;
+      font-size: 0.9rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+    }
+
+    .archive-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+
+    .archive-item {
+      padding: 0.6rem 0.75rem;
+      font-size: 0.875rem;
+      line-height: 1.4;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+    }
+
+    .archive-item:first-child {
+      color: var(--text);
+    }
+
+    .archive-empty {
+      color: var(--muted);
+      font-size: 0.875rem;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Curiosity Engine</h1>
+
+    <section class="section">
+      <div class="section-title">API key</div>
+      <input
+        type="password"
+        id="apiKey"
+        placeholder="sk-ant-..."
+        autocomplete="off"
+      />
+      <p class="hint">Your key is used only in this browser and never sent anywhere except Anthropic’s API.</p>
+    </section>
+
+    <section class="section">
+      <div class="section-title">Camera</div>
+      <div class="webcam-wrap" id="webcamWrap">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="canvas"></canvas>
+        <div class="webcam-placeholder" id="placeholder">Allow camera access to start</div>
+      </div>
+      <div class="controls" style="margin-top: 0.75rem;">
+        <button type="button" class="btn-primary" id="btnStart" disabled>Start</button>
+        <button type="button" class="btn-secondary" id="btnStop" disabled>Stop</button>
+        <div class="interval-wrap">
+          <label for="interval">Every</label>
+          <input type="number" id="interval" value="5" min="3" max="60" />
+          <span>sec</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-title">Question</div>
+      <div class="question-box empty" id="questionBox">Questions from the curiosity engine will appear here.</div>
+    </section>
+
+    <section class="section">
+      <div class="section-title">Archive</div>
+      <ul class="archive-list" id="archiveList"></ul>
+      <p class="archive-empty" id="archiveEmpty">No previous questions yet.</p>
+    </section>
+  </div>
+
+  <script>
+    // Elements
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const webcamWrap = document.getElementById('webcamWrap');
+    const placeholder = document.getElementById('placeholder');
+    const questionBox = document.getElementById('questionBox');
+    const apiKeyInput = document.getElementById('apiKey');
+    const btnStart = document.getElementById('btnStart');
+    const btnStop = document.getElementById('btnStop');
+    const intervalInput = document.getElementById('interval');
+    const archiveList = document.getElementById('archiveList');
+    const archiveEmpty = document.getElementById('archiveEmpty');
+
+    let stream = null;
+    let captureTimer = null;
+    let questionArchive = [];
+
+    function setQuestion(text, isLoading = false) {
+      const previous = questionBox.textContent?.trim() || '';
+      const placeholderText = 'Questions from the curiosity engine will appear here.';
+      const isRealQuestion = previous && !previous.startsWith('Error:') && previous !== 'Thinking…' && previous !== placeholderText;
+
+      // Archive the current question when we're about to replace it (either with "Thinking…" or with a new result)
+      if (isRealQuestion && (isLoading || (text && !text.startsWith('Error:')))) {
+        questionArchive.unshift(previous);
+        renderArchive();
+      }
+      questionBox.textContent = text || '';
+      questionBox.classList.toggle('empty', !text && !isLoading);
+      questionBox.classList.toggle('loading', isLoading);
+    }
+
+    function renderArchive() {
+      archiveList.innerHTML = '';
+      questionArchive.forEach((q) => {
+        const li = document.createElement('li');
+        li.className = 'archive-item';
+        li.textContent = q;
+        archiveList.appendChild(li);
+      });
+      archiveEmpty.hidden = questionArchive.length > 0;
+    }
+
+    function enableStart() {
+      btnStart.disabled = !apiKeyInput.value.trim();
+    }
+
+    apiKeyInput.addEventListener('input', enableStart);
+
+    async function startWebcam() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+        video.srcObject = stream;
+        webcamWrap.classList.add('active');
+        placeholder.textContent = '';
+        btnStart.disabled = true;
+        btnStop.disabled = false;
+        return true;
+      } catch (e) {
+        placeholder.textContent = 'Camera error: ' + (e.message || 'Permission denied');
+        return false;
+      }
+    }
+
+    function stopWebcam() {
+      if (captureTimer) {
+        clearInterval(captureTimer);
+        captureTimer = null;
+      }
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+      }
+      video.srcObject = null;
+      webcamWrap.classList.remove('active');
+      placeholder.textContent = 'Allow camera access to start';
+      btnStart.disabled = !apiKeyInput.value.trim();
+      btnStop.disabled = true;
+    }
+
+    function captureFrameAsBase64() {
+      if (!stream || !video.videoWidth) return null;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      return canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+    }
+
+    async function askCuriosity(frameBase64) {
+      const apiKey = apiKeyInput.value.trim();
+      if (!apiKey || !frameBase64) return;
+
+      setQuestion('Thinking…', true);
+
+      try {
+        const response = await fetch('/api/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ apiKey, imageBase64: frameBase64 }),
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || response.statusText || 'Request failed');
+        const newText = data.text || 'No question generated.';
+        setQuestion(newText);
+      } catch (e) {
+        setQuestion('Error: ' + (e.message || 'Request failed'));
+      }
+    }
+
+    function startCaptureLoop() {
+      const sec = Math.max(3, Math.min(60, Number(intervalInput.value) || 5));
+      askCuriosity(captureFrameAsBase64());
+      captureTimer = setInterval(() => askCuriosity(captureFrameAsBase64()), sec * 1000);
+    }
+
+    btnStart.addEventListener('click', async () => {
+      if (await startWebcam()) startCaptureLoop();
+    });
+
+    btnStop.addEventListener('click', stopWebcam);
+
+    enableStart();
+  </script>
+</body>
+</html>
