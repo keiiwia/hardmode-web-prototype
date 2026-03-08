@@ -33,7 +33,7 @@ Rules you cannot break:
 -The question must be impossible to ask about any other image — irreducibly specific to this scene
 -Clarity first, then depth
 -Avoid purely aesthetic observations — find the friction between the space and the humans who inhabit it
--Maximum 30 words
+-Maximum 20 words
 
 The six registers:
 OBSERVATIONAL: specific, irreducible, grounded in what is visibly, undeniably true about this exact scene — but points toward a pattern that exists far beyond it

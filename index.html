@@ -213,11 +213,13 @@
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
-      max-height: 240px;
+      max-height: 320px;
       overflow-y: auto;
     }
 
     .archive-item {
+      display: flex;
+      gap: 0.75rem;
       padding: 0.6rem 0.75rem;
       font-size: 0.875rem;
       line-height: 1.4;
@@ -225,9 +227,24 @@
       border: 1px solid var(--border);
       border-radius: 6px;
       color: var(--muted);
+      align-items: flex-start;
     }
 
-    .archive-item:first-child {
+    .archive-item-thumb {
+      width: 80px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 4px;
+      flex-shrink: 0;
+      background: var(--border);
+    }
+
+    .archive-item-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .archive-item:first-child .archive-item-text {
       color: var(--text);
     }
 
@@ -301,16 +318,23 @@
     let stream = null;
     let captureTimer = null;
     let questionArchive = [];
+    let currentQuestionImageDataUrl = null;
 
-    function setQuestion(text, isLoading = false) {
+    function setQuestion(text, isLoading = false, imageBase64 = null) {
       const previous = questionBox.textContent?.trim() || '';
       const placeholderText = 'Questions from the curiosity engine will appear here.';
       const isRealQuestion = previous && !previous.startsWith('Error:') && previous !== 'Thinking…' && previous !== placeholderText;
 
-      // Archive the current question when we're about to replace it (either with "Thinking…" or with a new result)
+      // Archive the current question (with its image) when we're about to replace it
       if (isRealQuestion && (isLoading || (text && !text.startsWith('Error:')))) {
-        questionArchive.unshift(previous);
+        questionArchive.unshift({
+          text: previous,
+          imageDataUrl: currentQuestionImageDataUrl ? currentQuestionImageDataUrl : null,
+        });
         renderArchive();
+      }
+      if (imageBase64) {
+        currentQuestionImageDataUrl = 'data:image/jpeg;base64,' + imageBase64;
       }
       questionBox.textContent = text || '';
       questionBox.classList.toggle('empty', !text && !isLoading);
@@ -319,10 +343,20 @@
 
     function renderArchive() {
       archiveList.innerHTML = '';
-      questionArchive.forEach((q) => {
+      questionArchive.forEach((item) => {
         const li = document.createElement('li');
         li.className = 'archive-item';
-        li.textContent = q;
+        if (item.imageDataUrl) {
+          const img = document.createElement('img');
+          img.className = 'archive-item-thumb';
+          img.src = item.imageDataUrl;
+          img.alt = '';
+          li.appendChild(img);
+        }
+        const span = document.createElement('span');
+        span.className = 'archive-item-text';
+        span.textContent = item.text;
+        li.appendChild(span);
         archiveList.appendChild(li);
       });
       archiveEmpty.hidden = questionArchive.length > 0;
@@ -389,7 +423,7 @@
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || response.statusText || 'Request failed');
         const newText = data.text || 'No question generated.';
-        setQuestion(newText);
+        setQuestion(newText, false, frameBase64);
       } catch (e) {
         setQuestion('Error: ' + (e.message || 'Request failed'));
       }
