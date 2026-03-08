@@ -253,6 +253,35 @@
       font-size: 0.875rem;
       font-style: italic;
     }
+
+    .archive-text-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+
+    .archive-text-item {
+      padding: 0.5rem 0;
+      font-size: 0.875rem;
+      line-height: 1.4;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .archive-text-item:last-child {
+      border-bottom: none;
+    }
+
+    .archive-text-empty {
+      color: var(--muted);
+      font-size: 0.875rem;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -298,6 +327,12 @@
       <ul class="archive-list" id="archiveList"></ul>
       <p class="archive-empty" id="archiveEmpty">No previous questions yet.</p>
     </section>
+
+    <section class="section">
+      <div class="section-title">Archive (text only)</div>
+      <ul class="archive-text-list" id="archiveTextList"></ul>
+      <p class="archive-text-empty" id="archiveTextEmpty">No previous questions yet.</p>
+    </section>
   </div>
 
   <script>
@@ -314,6 +349,8 @@
     const intervalInput = document.getElementById('interval');
     const archiveList = document.getElementById('archiveList');
     const archiveEmpty = document.getElementById('archiveEmpty');
+    const archiveTextList = document.getElementById('archiveTextList');
+    const archiveTextEmpty = document.getElementById('archiveTextEmpty');
 
     let stream = null;
     let captureTimer = null;
@@ -360,6 +397,15 @@
         archiveList.appendChild(li);
       });
       archiveEmpty.hidden = questionArchive.length > 0;
+
+      archiveTextList.innerHTML = '';
+      questionArchive.forEach((item) => {
+        const li = document.createElement('li');
+        li.className = 'archive-text-item';
+        li.textContent = item.text;
+        archiveTextList.appendChild(li);
+      });
+      archiveTextEmpty.hidden = questionArchive.length > 0;
     }
 
     function enableStart() {
